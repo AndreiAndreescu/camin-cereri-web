@@ -350,3 +350,22 @@ main {
 .timeline { margin-top: 8px; font-size: 12px; color: var(--muted); }
 
 .muted-note { color: var(--muted); font-size: 13px; }
+
+/* Printarea listei "De luat": ascunde tot restul paginii, arata doar tabelul. */
+.print-only-title { display: none; }
+
+@media print {
+  body * { visibility: hidden; }
+  #printable-shopping-list, #printable-shopping-list * { visibility: visible; }
+  #printable-shopping-list {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .print-only-title {
+    display: block;
+    margin: 0 0 12px;
+    font-size: 16px;
+  }
+}

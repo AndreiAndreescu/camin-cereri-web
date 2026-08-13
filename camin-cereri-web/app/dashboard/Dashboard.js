@@ -312,6 +312,33 @@ export default function Dashboard({ user }) {
     }
   }
 
+  // Descarca lista "De luat" ca fisier .csv, care se deschide direct in Excel
+  // (cu diacritice corecte si separator ";", potrivit pentru Excel in limba romana).
+  function exportShoppingListCSV() {
+    const header = ["Nr. crt.", "Produs", "Cantitate"];
+    const rows = shoppingList.map((it) => [it.nr_crt, it.produs, it.cantitate]);
+    const csvLines = [header, ...rows].map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")
+    );
+    const csvContent = "\uFEFF" + csvLines.join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const today = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `de-luat-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Deschide fereastra de printare a browserului, arata doar lista "De luat"
+  // (restul paginii e ascuns prin regulile @media print din globals.css).
+  function printShoppingList() {
+    window.print();
+  }
+
   return (
     <div id="app-screen">
       <header className="topbar">
@@ -516,26 +543,47 @@ export default function Dashboard({ user }) {
         <section className="panel">
           <div className="panel-header">
             <h2>De luat (cereri acceptate)</h2>
+            <div className="filters no-print">
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={exportShoppingListCSV}
+                disabled={shoppingList.length === 0}
+              >
+                Descarcă (Excel)
+              </button>
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={printShoppingList}
+                disabled={shoppingList.length === 0}
+              >
+                Printează
+              </button>
+            </div>
           </div>
-          <table className="items-table">
-            <thead>
-              <tr>
-                <th>Nr. crt.</th>
-                <th>Produs</th>
-                <th>Cantitate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shoppingList.map((it) => (
-                <tr key={it.nr_crt}>
-                  <td>{it.nr_crt}</td>
-                  <td>{escapeHtml(it.produs)}</td>
-                  <td>{escapeHtml(it.cantitate)}</td>
+          <div id="printable-shopping-list">
+            <h3 className="print-only-title">Listă „De luat" — {fmtDate(new Date().toISOString())}</h3>
+            <table className="items-table">
+              <thead>
+                <tr>
+                  <th>Nr. crt.</th>
+                  <th>Produs</th>
+                  <th>Cantitate</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {shoppingList.length === 0 && <p className="muted-note">Nimic de luat momentan.</p>}
+              </thead>
+              <tbody>
+                {shoppingList.map((it) => (
+                  <tr key={it.nr_crt}>
+                    <td>{it.nr_crt}</td>
+                    <td>{escapeHtml(it.produs)}</td>
+                    <td>{escapeHtml(it.cantitate)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {shoppingList.length === 0 && <p className="muted-note">Nimic de luat momentan.</p>}
+          </div>
         </section>
 
         {isAdmin && (
