@@ -1,6 +1,10 @@
 -- Cămin Romantic — Cereri produse
 -- Rulează tot acest fișier o singură dată, în Supabase Dashboard -> SQL Editor -> New query -> Run.
 -- Sigur de rulat de mai multe ori (foloseste "if not exists" / "on conflict").
+--
+-- Daca ai rulat deja o versiune mai veche a acestui fisier pe un proiect Supabase
+-- existent, nu rula asta din nou peste el - foloseste in schimb
+-- supabase/migration_v2.sql, facut special pentru baze de date deja existente.
 
 create table if not exists centers (
   id serial primary key,
@@ -12,8 +16,15 @@ create table if not exists profiles (
   email text not null,
   full_name text not null,
   role text not null check (role in ('admin', 'administrator_centru')),
-  center_id integer references centers(id),
+  center_id integer references centers(id), -- pastrat doar istoric; nefolosit - vezi user_centers
   created_at timestamptz not null default now()
+);
+
+-- Un administrator de centru poate fi asignat la mai multe centre.
+create table if not exists user_centers (
+  user_id uuid not null references profiles(id) on delete cascade,
+  center_id integer not null references centers(id) on delete cascade,
+  primary key (user_id, center_id)
 );
 
 create table if not exists requests (
@@ -40,17 +51,6 @@ create table if not exists request_items (
   cantitate text not null
 );
 
--- Sinonime de produse, definite manual, pentru pluralele neregulate pe care
--- regulile automate nu le prind (ex. "floare"/"flori" se prind automat, dar
--- "masa"/"mese" nu - admin le leaga manual o singura data, de-aici incolo se
--- aduna mereu impreuna in lista "de luat").
-create table if not exists product_aliases (
-  id serial primary key,
-  alias text not null,
-  canonical text not null,
-  created_at timestamptz not null default now()
-);
-
 -- RLS activat pe toate tabelele, fara nicio policy pentru clientul obisnuit:
 -- inseamna ca NIMENI nu poate citi/scrie direct din browser cu cheia publica
 -- (anon key). Toate operatiile trec exclusiv prin serverul aplicatiei
@@ -59,9 +59,9 @@ create table if not exists product_aliases (
 -- sa fie nevoie de policy-uri complicate.
 alter table centers enable row level security;
 alter table profiles enable row level security;
+alter table user_centers enable row level security;
 alter table requests enable row level security;
 alter table request_items enable row level security;
-alter table product_aliases enable row level security;
 
 -- Cele 30 de centre reale (de pe caminromantic.com/admin/centers).
 insert into centers (name) values

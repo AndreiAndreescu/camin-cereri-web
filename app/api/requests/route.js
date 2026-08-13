@@ -46,13 +46,16 @@ export async function POST(request) {
 
   const body = await request.json().catch(() => ({}));
   const { urgent, items } = body || {};
-  let centerId = body.center_id;
+  const centerId = body.center_id;
 
-  if (user.role === "administrator_centru") {
-    centerId = user.center_id;
-  }
   if (!centerId) {
     return NextResponse.json({ error: "Centrul este obligatoriu." }, { status: 400 });
+  }
+  if (user.role === "administrator_centru") {
+    const allowedCenters = user.center_ids || [];
+    if (!allowedCenters.includes(Number(centerId))) {
+      return NextResponse.json({ error: "Nu ai voie sa creezi cereri pentru acest centru." }, { status: 403 });
+    }
   }
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "Adauga cel putin un produs." }, { status: 400 });

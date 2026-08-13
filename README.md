@@ -14,12 +14,13 @@ sunt plătite/contul există.
 - **Supabase** ține baza de date (centre, utilizatori, cereri) și gestionează
   autentificarea (email + parolă) — tot gratuit la acest volum.
 - Doar 2 roluri au cont: **admin** (șefa — creează, acceptă/respinge și
-  confirmă cereri, plus poate crea alți utilizatori) și **administrator de
-  centru** (creează cereri doar pentru centrul propriu).
+  confirmă cereri, adaugă centre noi și poate crea alți utilizatori) și
+  **administrator de centru** (creează cereri doar pentru centrul/centrele la
+  care e asignat — poate fi asignat la unul sau la mai multe centre deodată).
 - Produsele identice cerute de doi oameni diferit (scaun/scaune, floare/flori)
-  se adună automat în lista "de luat". Pentru pluralele neregulate pe care
-  regulile automate nu le prind (ex. masă/mese), admin le leagă manual, o
-  singură dată, din panoul **Sinonime produse**.
+  se adună automat în lista "de luat".
+- Centrele nu mai sunt fixe: admin poate adăuga centre noi oricând, direct din
+  panoul **Centre** al aplicației, fără să mai fie nevoie de baza de date.
 
 Nimic din toate astea nu necesită cunoștințe tehnice după ce e pus o dată la
 punct — pașii de mai jos sunt gândiți să fie urmați o singură dată.
@@ -105,13 +106,30 @@ Gata — acum poți intra pe linkul Vercel cu acel email/parolă.
 ## Pasul 5 — Adaugi restul utilizatorilor (administratori de centru)
 
 Din acest punct înainte, **nu mai e nevoie de terminal**. Loghează-te cu
-contul de admin pe link-ul Vercel, mergi jos la secțiunea **Utilizatori** din
-pagină, completează nume/email/parolă, alege rolul "Administrator de Centru"
-și centrul, și apasă **Creează cont**. Persoana respectivă se loghează direct
-cu emailul și parola primite.
+contul de admin pe link-ul Vercel:
+
+- Mergi la secțiunea **Centre** ca să adaugi orice centru nou lipsă.
+- Mergi la secțiunea **Utilizatori**, completează nume/email/parolă, alege
+  rolul "Administrator de Centru" și bifează unul sau mai multe centre (un
+  administrator poate fi responsabil de mai multe centre deodată), apoi
+  apasă **Creează cont**. Persoana respectivă se loghează direct cu emailul
+  și parola primite.
 
 (Scriptul `npm run create-user` tot funcționează, dacă vreodată preferi
-terminalul — util și ca să vezi lista de centre: `npm run create-user -- --list-centers`.)
+terminalul — acceptă și mai multe centre deodată, separate prin virgulă:
+`--center="CIA Romantic,CIA Casa cu Tei"`. Ca să vezi lista de centre:
+`npm run create-user -- --list-centers`.)
+
+---
+
+## Dacă aplicația e deja live (actualizare la centre multiple)
+
+Dacă ai deja rulat `supabase/schema.sql` cândva și aplicația e deja folosită,
+NU rula din nou `schema.sql` — în schimb, deschide `supabase/migration_v2.sql`
+din acest proiect, copiază tot conținutul în Supabase → **SQL Editor** → New
+query, și apasă **Run**. E sigur de rulat de mai multe ori și nu șterge nimic
+din datele existente — doar adaugă suportul pentru centre multiple per
+administrator și mută automat asignările deja existente.
 
 ---
 

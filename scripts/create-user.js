@@ -4,6 +4,8 @@
 // Exemple:
 //   npm run create-user -- --email=sefa@caminromantic.com --password=parola123 --name="Numele Sefei" --role=admin
 //   npm run create-user -- --email=centru9@caminromantic.com --password=parola123 --name="Nume Administrator" --role=administrator_centru --center="CIA Romantic"
+//   (mai multe centre, separate prin virgula:)
+//   npm run create-user -- --email=... --password=... --name="..." --role=administrator_centru --center="CIA Romantic,CIA Casa cu Tei"
 //
 // Ca sa vezi numele exacte ale centrelor din baza de date:
 //   npm run create-user -- --list-centers
@@ -46,7 +48,7 @@ async function main() {
 
   if (!email || !password || !name || !role) {
     console.error(
-      "Lipsesc argumente. Foloseste: --email=... --password=... --name=\"...\" --role=admin|administrator_centru [--center=\"Nume centru\"]"
+      'Lipsesc argumente. Foloseste: --email=... --password=... --name="..." --role=admin|administrator_centru [--center="Nume centru[,Alt centru]"]'
     );
     process.exit(1);
   }
@@ -55,25 +57,32 @@ async function main() {
     process.exit(1);
   }
 
-  let centerId = null;
+  let centerIds = [];
   if (role === "administrator_centru") {
     if (!center) {
-      console.error('Pentru rolul "administrator_centru" e obligatoriu si --center="Nume centru exact".');
+      console.error('Pentru rolul "administrator_centru" e obligatoriu si --center="Nume centru exact[,Alt centru]".');
       process.exit(1);
     }
-    const { data: centerRow, error: centerError } = await db
-      .from("centers")
-      .select("id, name")
-      .ilike("name", center)
-      .maybeSingle();
-    if (centerError) throw centerError;
-    if (!centerRow) {
-      console.error(
-        `Nu am gasit niciun centru cu numele exact "${center}". Ruleaza "npm run create-user -- --list-centers" ca sa vezi numele corecte.`
-      );
-      process.exit(1);
+    const centerNames = String(center)
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    for (const centerName of centerNames) {
+      const { data: centerRow, error: centerError } = await db
+        .from("centers")
+        .select("id, name")
+        .ilike("name", centerName)
+        .maybeSingle();
+      if (centerError) throw centerError;
+      if (!centerRow) {
+        console.error(
+          `Nu am gasit niciun centru cu numele exact "${centerName}". Ruleaza "npm run create-user -- --list-centers" ca sa vezi numele corecte.`
+        );
+        process.exit(1);
+      }
+      centerIds.push(centerRow.id);
     }
-    centerId = centerRow.id;
   }
 
   const { data: created, error: createError } = await db.auth.admin.createUser({
@@ -91,14 +100,25 @@ async function main() {
     email,
     full_name: name,
     role,
-    center_id: centerId,
   });
   if (profileError) {
     console.error("Contul a fost creat, dar profilul a esuat:", profileError.message);
     process.exit(1);
   }
 
-  console.log(`Cont creat cu succes: ${email} (rol: ${role}${centerId ? `, centru #${centerId}` : ""}).`);
+  if (centerIds.length > 0) {
+    const { error: linkError } = await db
+      .from("user_centers")
+      .insert(centerIds.map((center_id) => ({ user_id: created.user.id, center_id })));
+    if (linkError) {
+      console.error("Contul si profilul au fost create, dar asignarea centrelor a esuat:", linkError.message);
+      process.exit(1);
+    }
+  }
+
+  console.log(
+    `Cont creat cu succes: ${email} (rol: ${role}${centerIds.length ? `, centre: ${centerIds.join(", ")}` : ""}).`
+  );
 }
 
 main().catch((err) => {

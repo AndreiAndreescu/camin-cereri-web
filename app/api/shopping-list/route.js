@@ -11,17 +11,13 @@ export async function GET() {
 
   const db = supabaseAdmin();
 
-  const [{ data, error: dbError }, { data: aliases, error: aliasError }] = await Promise.all([
-    db
-      .from("requests")
-      .select("*, request_items(*)")
-      .eq("status", "in_curs")
-      .order("decided_at", { ascending: true }),
-    db.from("product_aliases").select("alias, canonical"),
-  ]);
+  const { data, error: dbError } = await db
+    .from("requests")
+    .select("*, request_items(*)")
+    .eq("status", "in_curs")
+    .order("decided_at", { ascending: true });
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
-  if (aliasError) return NextResponse.json({ error: aliasError.message }, { status: 500 });
 
   const requests = data.map((r) => ({
     items: (r.request_items || [])
@@ -30,5 +26,5 @@ export async function GET() {
       .map((it) => ({ produs: it.produs, cantitate: it.cantitate })),
   }));
 
-  return NextResponse.json({ items: buildShoppingList(requests, aliases) });
+  return NextResponse.json({ items: buildShoppingList(requests) });
 }

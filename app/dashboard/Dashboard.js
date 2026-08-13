@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const ROLE_LABELS = {
@@ -45,6 +45,8 @@ function escapeHtml(str) {
 export default function Dashboard({ user }) {
   const router = useRouter();
   const canDecide = CAN_DECIDE.includes(user.role);
+  const isAdmin = user.role === "admin";
+  const userCenterIds = user.center_ids || [];
 
   const [centers, setCenters] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -66,22 +68,27 @@ export default function Dashboard({ user }) {
     password: "",
     full_name: "",
     role: "administrator_centru",
-    center_id: "",
+    center_ids: [],
   });
   const [userError, setUserError] = useState("");
   const [userSuccess, setUserSuccess] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
-  const isAdmin = user.role === "admin";
 
-  const [aliases, setAliases] = useState([]);
-  const [newAlias, setNewAlias] = useState({ alias: "", canonical: "" });
-  const [aliasError, setAliasError] = useState("");
-  const [creatingAlias, setCreatingAlias] = useState(false);
+  const [newCenterName, setNewCenterName] = useState("");
+  const [centerError, setCenterError] = useState("");
+  const [creatingCenter, setCreatingCenter] = useState(false);
 
   const centerName = useCallback(
     (id) => centers.find((c) => c.id === Number(id))?.name || "—",
     [centers]
   );
+
+  // Centrele pentru care userul curent are voie sa creeze o cerere: toate,
+  // daca e admin, sau doar cele la care e asignat, daca e administrator de centru.
+  const requestableCenters = useMemo(() => {
+    if (user.role !== "administrator_centru") return centers;
+    return centers.filter((c) => userCenterIds.includes(c.id));
+  }, [centers, user.role, userCenterIds]);
 
   const loadRequests = useCallback(async () => {
     const params = new URLSearchParams();
@@ -103,22 +110,18 @@ export default function Dashboard({ user }) {
     setUsers(users);
   }, [isAdmin]);
 
-  const loadAliases = useCallback(async () => {
-    if (!isAdmin) return;
-    const { aliases } = await api("/api/product-aliases");
-    setAliases(aliases);
-  }, [isAdmin]);
-
   useEffect(() => {
     (async () => {
       const { centers } = await api("/api/centers");
       setCenters(centers);
-      if (user.role !== "administrator_centru" && centers.length > 0) {
-        setReqCenter(String(centers[0].id));
-        setNewUser((u) => ({ ...u, center_id: String(centers[0].id) }));
-      }
     })();
-  }, [user.role]);
+  }, []);
+
+  useEffect(() => {
+    if (requestableCenters.length === 0) return;
+    if (requestableCenters.some((c) => String(c.id) === reqCenter)) return;
+    setReqCenter(String(requestableCenters[0].id));
+  }, [requestableCenters, reqCenter]);
 
   useEffect(() => {
     loadRequests();
@@ -131,10 +134,6 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
-
-  useEffect(() => {
-    loadAliases();
-  }, [loadAliases]);
 
   async function onLogout() {
     await api("/api/logout", { method: "POST" });
@@ -150,7 +149,7 @@ export default function Dashboard({ user }) {
     try {
       await api("/api/users", { method: "POST", body: JSON.stringify(newUser) });
       setUserSuccess(`Cont creat: ${newUser.email}`);
-      setNewUser((u) => ({ ...u, email: "", password: "", full_name: "" }));
+      setNewUser((u) => ({ ...u, email: "", password: "", full_name: "", center_ids: [] }));
       await loadUsers();
     } catch (err) {
       setUserError(err.message);
@@ -159,29 +158,21 @@ export default function Dashboard({ user }) {
     }
   }
 
-  async function onCreateAlias(e) {
+  async function onCreateCenter(e) {
     e.preventDefault();
-    setAliasError("");
-    setCreatingAlias(true);
+    setCenterError("");
+    setCreatingCenter(true);
     try {
-      await api("/api/product-aliases", { method: "POST", body: JSON.stringify(newAlias) });
-      setNewAlias({ alias: "", canonical: "" });
-      await loadAliases();
-      await loadShoppingList();
+      const { center } = await api("/api/centers", {
+        method: "POST",
+        body: JSON.stringify({ name: newCenterName }),
+      });
+      setCenters((cs) => [...cs, center].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewCenterName("");
     } catch (err) {
-      setAliasError(err.message);
+      setCenterError(err.message);
     } finally {
-      setCreatingAlias(false);
-    }
-  }
-
-  async function onDeleteAlias(id) {
-    try {
-      await api(`/api/product-aliases/${id}`, { method: "DELETE" });
-      await loadAliases();
-      await loadShoppingList();
-    } catch (err) {
-      alert(err.message);
+      setCreatingCenter(false);
     }
   }
 
@@ -200,10 +191,7 @@ export default function Dashboard({ user }) {
     setFormError("");
     setSubmitting(true);
 
-    const payload = { urgent: reqUrgent, items };
-    if (user.role !== "administrator_centru") {
-      payload.center_id = reqCenter;
-    }
+    const payload = { urgent: reqUrgent, items, center_id: reqCenter };
 
     try {
       await api("/api/requests", { method: "POST", body: JSON.stringify(payload) });
@@ -266,18 +254,16 @@ export default function Dashboard({ user }) {
           </div>
           <form className="new-request" onSubmit={onSubmitNewRequest}>
             <div className="row">
-              {user.role !== "administrator_centru" && (
-                <div className="field">
-                  <label>Centru</label>
-                  <select value={reqCenter} onChange={(e) => setReqCenter(e.target.value)}>
-                    {centers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="field">
+                <label>Centru</label>
+                <select value={reqCenter} onChange={(e) => setReqCenter(e.target.value)}>
+                  {requestableCenters.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="field urgent-field">
                 <label>
                   <input
@@ -478,57 +464,37 @@ export default function Dashboard({ user }) {
         {isAdmin && (
           <section className="panel">
             <div className="panel-header">
-              <h2>Sinonime produse</h2>
+              <h2>Centre</h2>
             </div>
-            <p className="muted-note" style={{ marginTop: -8, marginBottom: 14 }}>
-              Pentru produse ca „masă"/„mese", pe care aplicația nu le recunoaște automat ca fiind
-              același lucru — le legi o singură dată aici, și de-atunci se adună mereu împreună în
-              lista „De luat".
-            </p>
 
             <div className="requests-list" style={{ marginBottom: 18 }}>
-              {aliases.map((a) => (
-                <div key={a.id} className="request-card">
+              {centers.map((c) => (
+                <div key={c.id} className="request-card">
                   <div className="request-top">
-                    <div className="request-title">
-                      „{a.alias}" se numără ca „{a.canonical}"
-                    </div>
-                    <button className="action-btn reject-btn" onClick={() => onDeleteAlias(a.id)}>
-                      Șterge
-                    </button>
+                    <div className="request-title">{c.name}</div>
                   </div>
                 </div>
               ))}
-              {aliases.length === 0 && <p className="muted-note">Niciun sinonim definit încă.</p>}
+              {centers.length === 0 && <p className="muted-note">Se încarcă…</p>}
             </div>
 
-            <form className="new-request" onSubmit={onCreateAlias}>
+            <form className="new-request" onSubmit={onCreateCenter}>
               <div className="row">
                 <div className="field">
-                  <label>Cum a fost scris</label>
+                  <label>Nume centru nou</label>
                   <input
                     type="text"
-                    placeholder="ex: mese"
                     required
-                    value={newAlias.alias}
-                    onChange={(e) => setNewAlias((a) => ({ ...a, alias: e.target.value }))}
-                  />
-                </div>
-                <div className="field">
-                  <label>Se numără ca</label>
-                  <input
-                    type="text"
-                    placeholder="ex: masă"
-                    required
-                    value={newAlias.canonical}
-                    onChange={(e) => setNewAlias((a) => ({ ...a, canonical: e.target.value }))}
+                    placeholder="ex: LMP Centru Nou"
+                    value={newCenterName}
+                    onChange={(e) => setNewCenterName(e.target.value)}
                   />
                 </div>
               </div>
-              <button type="submit" className="primary-btn" disabled={creatingAlias}>
-                {creatingAlias ? "Se salvează…" : "Adaugă sinonim"}
+              <button type="submit" className="primary-btn" disabled={creatingCenter}>
+                {creatingCenter ? "Se adaugă…" : "Adaugă centru"}
               </button>
-              {aliasError && <p className="error">{aliasError}</p>}
+              {centerError && <p className="error">{centerError}</p>}
             </form>
           </section>
         )}
@@ -547,7 +513,9 @@ export default function Dashboard({ user }) {
                       <div className="request-title">{u.full_name}</div>
                       <div className="request-meta">
                         {u.email} · {ROLE_LABELS[u.role]}
-                        {u.center_id ? ` · ${centerName(u.center_id)}` : ""}
+                        {u.center_ids && u.center_ids.length > 0
+                          ? ` · ${u.center_ids.map(centerName).join(", ")}`
+                          : ""}
                       </div>
                     </div>
                   </div>
@@ -599,23 +567,39 @@ export default function Dashboard({ user }) {
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                {newUser.role === "administrator_centru" && (
-                  <div className="field">
-                    <label>Centru</label>
-                    <select
-                      value={newUser.center_id}
-                      onChange={(e) => setNewUser((u) => ({ ...u, center_id: e.target.value }))}
-                    >
-                      {centers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
-              <button type="submit" className="primary-btn" disabled={creatingUser}>
+              {newUser.role === "administrator_centru" && (
+                <div className="field" style={{ marginTop: 10 }}>
+                  <label>Centre (poate avea mai multe)</label>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                      gap: "6px 14px",
+                      marginTop: 6,
+                    }}
+                  >
+                    {centers.map((c) => (
+                      <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 400 }}>
+                        <input
+                          type="checkbox"
+                          checked={newUser.center_ids.includes(c.id)}
+                          onChange={(e) => {
+                            setNewUser((u) => ({
+                              ...u,
+                              center_ids: e.target.checked
+                                ? [...u.center_ids, c.id]
+                                : u.center_ids.filter((id) => id !== c.id),
+                            }));
+                          }}
+                        />
+                        {c.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <button type="submit" className="primary-btn" style={{ marginTop: 14 }} disabled={creatingUser}>
                 {creatingUser ? "Se creează…" : "Creează cont"}
               </button>
               {userError && <p className="error">{userError}</p>}

@@ -32,11 +32,16 @@ export async function POST(request) {
     );
   }
 
+  const { data: centerLinks } = await supabaseAdmin()
+    .from("user_centers")
+    .select("center_id")
+    .eq("user_id", profile.id);
+
   const sessionUser = {
     id: profile.id,
     full_name: profile.full_name,
     role: profile.role,
-    center_id: profile.center_id,
+    center_ids: (centerLinks || []).map((c) => c.center_id),
   };
 
   const token = signSession(sessionUser);
