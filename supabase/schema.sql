@@ -49,7 +49,10 @@ create table if not exists request_items (
   nr_crt integer not null,
   produs text not null,
   cantitate text not null,
-  detalii text
+  detalii text,
+  culoare text,
+  marime text,
+  sex text check (sex in ('Masculin', 'Feminin') or sex is null)
 );
 
 -- Catalogul de produse din care se poate alege la o cerere noua (admin il
