@@ -78,6 +78,37 @@ body {
 
 .login-box button { margin-top: 18px; }
 
+/* Butoanele de alegere a secțiunii (ecranul Admin General, cont care vede
+   ambele secțiuni) - stilizate in tema aplicației, nu ca butoane implicite
+   de browser. */
+.section-choice-btn {
+  margin-top: 0 !important;
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.08s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+.section-choice-btn:active { transform: scale(0.99); }
+
+.section-choice-btn-camin {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25);
+}
+.section-choice-btn-camin:hover { background: var(--primary-dark); }
+
+.section-choice-btn-vega {
+  background: #fff;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+.section-choice-btn-vega:hover { background: var(--primary-bg); }
+
 /* Layout */
 .topbar {
   display: flex;

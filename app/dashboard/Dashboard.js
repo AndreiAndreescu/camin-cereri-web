@@ -1640,16 +1640,18 @@ export default function Dashboard({ user, canSwitchSection }) {
                             : ""}
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button className="secondary-btn" type="button" onClick={() => onStartEditUser(u)}>
-                          Editează
-                        </button>
-                        {u.id !== user.id && (
-                          <button className="action-btn reject-btn" onClick={() => onDeleteUser(u.id, u.full_name)}>
-                            Șterge
+                      {u.can_manage !== false && (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button className="secondary-btn" type="button" onClick={() => onStartEditUser(u)}>
+                            Editează
                           </button>
-                        )}
-                      </div>
+                          {u.id !== user.id && (
+                            <button className="action-btn reject-btn" onClick={() => onDeleteUser(u.id, u.full_name)}>
+                              Șterge
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

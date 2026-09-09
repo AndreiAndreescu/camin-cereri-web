@@ -7,9 +7,18 @@ export const dynamic = "force-dynamic";
 
 // Doar vega_admin poate edita un utilizator Vega: nume, email, rol, locații
 // asignate, si optional o parola noua. Verificam explicit ca profilul-tinta
-// are deja un rol Vega, altfel un cont vega_admin nu ar trebui sa poata
+// are deja un rol vizibil pentru actor (Vega, sau super_admin daca actorul e
+// el insusi super_admin), altfel un cont vega_admin nu ar trebui sa poata
 // atinge (nici macar sa vada ca exista) un cont admin/administrator_centru
 // de la Camin Romantic - izolarea trebuie sa fie completa, in ambele sensuri.
+//
+// super_admin poate in plus edita alte conturi super_admin (inclusiv sa
+// promoveze un vega_admin/vega_manager la super_admin) - vezi allowedRolesFor
+// in ../route.js.
+function allowedRolesFor(actor) {
+  return actor.role === "super_admin" ? [...VEGA_ROLES, "super_admin"] : VEGA_ROLES;
+}
+
 export async function PATCH(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
@@ -18,6 +27,7 @@ export async function PATCH(request, { params }) {
 
   const id = params.id;
   const db = supabaseAdmin();
+  const allowedRoles = allowedRolesFor(user);
 
   const { data: target, error: targetError } = await db
     .from("profiles")
@@ -25,7 +35,7 @@ export async function PATCH(request, { params }) {
     .eq("id", id)
     .maybeSingle();
   if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
-  if (!target || !VEGA_ROLES.includes(target.role)) {
+  if (!target || !allowedRoles.includes(target.role)) {
     return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
 
@@ -40,7 +50,7 @@ export async function PATCH(request, { params }) {
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return NextResponse.json({ error: "Emailul nu pare valid." }, { status: 400 });
   }
-  if (!VEGA_ROLES.includes(role)) {
+  if (!allowedRoles.includes(role)) {
     return NextResponse.json({ error: "Rol invalid." }, { status: 400 });
   }
   if (role === "vega_manager" && locationIds.length === 0) {
@@ -114,7 +124,7 @@ export async function DELETE(request, { params }) {
     .eq("id", id)
     .maybeSingle();
   if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
-  if (!target || !VEGA_ROLES.includes(target.role)) {
+  if (!target || !allowedRolesFor(user).includes(target.role)) {
     return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
 

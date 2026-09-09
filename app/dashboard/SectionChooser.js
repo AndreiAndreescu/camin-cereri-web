@@ -25,10 +25,18 @@ export default function SectionChooser({ user }) {
           cealaltă din meniul de sus.
         </p>
 
-        <button type="button" onClick={() => router.push("/dashboard?section=camin")}>
+        <button
+          type="button"
+          className="section-choice-btn section-choice-btn-camin"
+          onClick={() => router.push("/dashboard?section=camin")}
+        >
           Cămin Romantic
         </button>
-        <button type="button" onClick={() => router.push("/dashboard?section=vega")}>
+        <button
+          type="button"
+          className="section-choice-btn section-choice-btn-vega"
+          onClick={() => router.push("/dashboard?section=vega")}
+        >
           Vega Constanța
         </button>
 

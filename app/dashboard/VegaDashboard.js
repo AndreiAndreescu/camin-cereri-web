@@ -48,6 +48,9 @@ function escapeHtml(str) {
 export default function VegaDashboard({ user, canSwitchSection }) {
   const router = useRouter();
   const isVegaAdmin = user.role === "vega_admin" || user.role === "super_admin";
+  // super_admin poate in plus vedea/crea/edita alte conturi "Admin General"
+  // si din partea Vega - vezi app/api/vega/users/route.js (allowedRolesFor).
+  const isSuperAdmin = user.role === "super_admin";
   const userLocationIds = user.center_ids || [];
 
   const [activeTab, setActiveTab] = useState("referate");
@@ -1583,6 +1586,7 @@ export default function VegaDashboard({ user, canSwitchSection }) {
                           >
                             <option value="vega_manager">Manager locație</option>
                             <option value="vega_admin">Admin Vega</option>
+                            {isSuperAdmin && <option value="super_admin">Admin General (Cămin + Vega)</option>}
                           </select>
                         </div>
                         <div className="field">
@@ -1648,16 +1652,18 @@ export default function VegaDashboard({ user, canSwitchSection }) {
                             : ""}
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button className="secondary-btn" type="button" onClick={() => onStartEditUser(u)}>
-                          Editează
-                        </button>
-                        {u.id !== user.id && (
-                          <button className="action-btn reject-btn" onClick={() => onDeleteUser(u.id, u.full_name)}>
-                            Șterge
+                      {u.can_manage !== false && (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button className="secondary-btn" type="button" onClick={() => onStartEditUser(u)}>
+                            Editează
                           </button>
-                        )}
-                      </div>
+                          {u.id !== user.id && (
+                            <button className="action-btn reject-btn" onClick={() => onDeleteUser(u.id, u.full_name)}>
+                              Șterge
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1706,6 +1712,7 @@ export default function VegaDashboard({ user, canSwitchSection }) {
                   >
                     <option value="vega_manager">Manager locație</option>
                     <option value="vega_admin">Admin Vega</option>
+                    {isSuperAdmin && <option value="super_admin">Admin General (Cămin + Vega)</option>}
                   </select>
                 </div>
               </div>
