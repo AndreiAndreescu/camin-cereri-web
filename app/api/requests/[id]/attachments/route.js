@@ -22,7 +22,7 @@ const ALLOWED_TYPES = [
 // Administrator de centru poate atasa doar la referatele centrului/centrelor
 // lui, tot indiferent de status.
 function canAccess(user, centerId) {
-  if (user.role === "admin") return true;
+  if (user.role === "admin" || user.role === "super_admin") return true;
   if (user.role === "administrator_centru") {
     return (user.center_ids || []).includes(centerId);
   }

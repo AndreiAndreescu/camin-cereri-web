@@ -64,7 +64,7 @@ export async function PATCH(request, { params }) {
     }
   }
 
-  if (user.role === "admin") {
+  if (user.role === "admin" || user.role === "super_admin") {
     // fara restrictie de centru
   } else if (user.role === "administrator_centru") {
     const allowedCenters = user.center_ids || [];
@@ -131,7 +131,7 @@ export async function DELETE(request, { params }) {
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
   if (!existing) return NextResponse.json({ error: "Referatul de necesitate nu a fost găsit." }, { status: 404 });
 
-  if (user.role === "admin") {
+  if (user.role === "admin" || user.role === "super_admin") {
     if (!["rezolvat", "respins"].includes(existing.status)) {
       return NextResponse.json(
         { error: "Poți șterge doar referate de necesitate deja rezolvate sau respinse." },

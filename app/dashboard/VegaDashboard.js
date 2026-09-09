@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 const ROLE_LABELS = {
   vega_admin: "Admin Vega",
   vega_manager: "Manager locație",
+  super_admin: "Admin General (Cămin + Vega)",
 };
 
 const STATUS_LABELS = {
@@ -44,9 +45,9 @@ function escapeHtml(str) {
   return String(str ?? "");
 }
 
-export default function VegaDashboard({ user }) {
+export default function VegaDashboard({ user, canSwitchSection }) {
   const router = useRouter();
-  const isVegaAdmin = user.role === "vega_admin";
+  const isVegaAdmin = user.role === "vega_admin" || user.role === "super_admin";
   const userLocationIds = user.center_ids || [];
 
   const [activeTab, setActiveTab] = useState("referate");
@@ -714,6 +715,11 @@ export default function VegaDashboard({ user }) {
         <div className="who">
           <span>{user.full_name}</span>
           <span className="badge-role">{ROLE_LABELS[user.role] || user.role}</span>
+          {canSwitchSection && (
+            <button className="link-btn" onClick={() => router.push("/dashboard?section=camin")}>
+              Cămin Romantic →
+            </button>
+          )}
           <button className="link-btn" onClick={onLogout}>
             Ieși din cont
           </button>

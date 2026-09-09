@@ -91,8 +91,9 @@ e construită așa la nivel de bază de date și server:
   etc.) resping la fel de strict orice cont Vega, și au fost verificate să nu
   poată nici măcar vedea că există conturi Vega în baza de date.
 - Interfață complet separată (`VegaDashboard.js`), afișată automat la login
-  în funcție de rol — nu există niciun buton sau link care să treacă dintr-o
-  secțiune în alta.
+  în funcție de rol. Singura excepție e contul special „Admin General"
+  (`super_admin`, vezi mai jos) — pentru toate celelalte roluri nu există
+  niciun buton sau link care să treacă dintr-o secțiune în alta.
 
 **Roluri** (2 roluri noi, fără nicio legătură cu cele de la Cămin Romantic):
 
@@ -130,6 +131,33 @@ npm run create-user -- --email=beauty@vegaconstanta.com --password=parola123 --n
 
 Nimic din toate astea nu necesită cunoștințe tehnice după ce e pus o dată la
 punct — pașii de mai jos sunt gândiți să fie urmați o singură dată.
+
+### Admin General — un singur cont care vede AMBELE secțiuni
+
+Izolarea de mai sus e totală pentru toată lumea, cu o singură excepție
+voită: rolul special **Admin General** (`super_admin`). E gândit pentru o
+singură persoană (de ex. tu) care trebuie să aibă control complet și peste
+Cămin Romantic, și peste Vega Constanța, fără să aibă nevoie de două conturi
+separate.
+
+Cum funcționează:
+
+- La login, un cont Admin General vede un ecran de alegere: **Cămin
+  Romantic** sau **Vega Constanța**.
+- Odată intrat într-o secțiune, are un buton mereu vizibil sus, în dreapta
+  (lângă „Ieși din cont"), ca să treacă instant în cealaltă secțiune, fără
+  să mai dea logout.
+- În Cămin Romantic se comportă identic cu un cont `admin` (decide toate
+  referatele, gestionează utilizatori, centre, produse). În Vega Constanța
+  se comportă identic cu un cont `vega_admin` (gestionează ambele locații).
+- Pentru toate celelalte conturi — admin/administrator de centru de la Cămin
+  Romantic, vega_admin/vega_manager de la Vega Constanța — nimic nu se
+  schimbă: izolarea rămâne totală și în ambele sensuri.
+
+Contul Admin General **nu se creează din nou** — se obține transformând un
+cont de admin deja existent la Cămin Romantic, printr-o comandă SQL rulată o
+singură dată în Supabase (vezi `supabase/migration_v8.sql` mai jos, la
+secțiunea de migrări).
 
 ---
 
@@ -255,8 +283,23 @@ NU rula din nou `schema.sql` — în schimb, rulează pe rând, în Supabase →
    (Salon Beauty + Restaurant): tabele proprii, bucket propriu de Storage și
    cele două roluri noi (`vega_admin`, `vega_manager`). Nu afectează deloc
    datele de la Cămin Romantic.
+8. `supabase/migration_v8.sql` — adaugă rolul special **Admin General**
+   (`super_admin`), singurul care vede și controlează ambele secțiuni (vezi
+   „Admin General" mai sus). După ce rulezi acest fișier, transformă contul
+   tău de admin existent de la Cămin Romantic într-un cont Admin General cu o
+   comandă separată, tot în SQL Editor (înlocuiește emailul cu al tău —
+   trebuie să fie emailul contului tău de admin deja existent, nu unul nou):
 
-Sunt sigure de rulat de mai multe ori și nu șterg nimic din datele existente.
+   ```sql
+   update profiles set role = 'super_admin' where email = 'emailul-tau@exemplu.com';
+   ```
+
+   Verifică emailul cu atenție înainte să apeși Run — comanda schimbă
+   contul respectiv definitiv în Admin General.
+
+Sunt sigure de rulat de mai multe ori și nu șterg nimic din datele existente
+(cu excepția comenzii `update` de mai sus, care trebuie rulată o singură
+dată, cu grijă, doar pe emailul corect).
 
 ---
 

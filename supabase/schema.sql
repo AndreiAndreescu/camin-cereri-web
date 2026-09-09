@@ -15,7 +15,7 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   full_name text not null,
-  role text not null check (role in ('admin', 'administrator_centru', 'vega_admin', 'vega_manager')),
+  role text not null check (role in ('admin', 'administrator_centru', 'vega_admin', 'vega_manager', 'super_admin')),
   center_id integer references centers(id), -- pastrat doar istoric; nefolosit - vezi user_centers
   created_at timestamptz not null default now()
 );

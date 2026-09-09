@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 const ROLE_LABELS = {
   admin: "Admin",
   administrator_centru: "Administrator de Centru",
+  super_admin: "Admin General (Cămin + Vega)",
 };
 
 const STATUS_LABELS = {
@@ -15,7 +16,7 @@ const STATUS_LABELS = {
   respins: "Respins",
 };
 
-const CAN_DECIDE = ["admin"];
+const CAN_DECIDE = ["admin", "super_admin"];
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -42,10 +43,10 @@ function escapeHtml(str) {
   return String(str ?? "");
 }
 
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, canSwitchSection }) {
   const router = useRouter();
   const canDecide = CAN_DECIDE.includes(user.role);
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role === "admin" || user.role === "super_admin";
   const userCenterIds = user.center_ids || [];
 
   // Ce "pagina" e activa - in loc de un singur scroll infinit cu toate
@@ -711,6 +712,11 @@ export default function Dashboard({ user }) {
         <div className="who">
           <span>{user.full_name}</span>
           <span className="badge-role">{ROLE_LABELS[user.role] || user.role}</span>
+          {canSwitchSection && (
+            <button className="link-btn" onClick={() => router.push("/dashboard?section=vega")}>
+              Vega Constanța →
+            </button>
+          )}
           <button className="link-btn" onClick={onLogout}>
             Ieși din cont
           </button>
