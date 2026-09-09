@@ -47,6 +47,10 @@ export default function Dashboard({ user, canSwitchSection }) {
   const router = useRouter();
   const canDecide = CAN_DECIDE.includes(user.role);
   const isAdmin = user.role === "admin" || user.role === "super_admin";
+  // super_admin poate in plus vedea/crea/edita alte conturi "Admin General" -
+  // vezi app/api/users/route.js (allowedRolesFor). Un admin obisnuit nu vede
+  // niciodata optiunea asta.
+  const isSuperAdmin = user.role === "super_admin";
   const userCenterIds = user.center_ids || [];
 
   // Ce "pagina" e activa - in loc de un singur scroll infinit cu toate
@@ -1570,6 +1574,7 @@ export default function Dashboard({ user, canSwitchSection }) {
                           >
                             <option value="administrator_centru">Administrator de Centru</option>
                             <option value="admin">Admin</option>
+                            {isSuperAdmin && <option value="super_admin">Admin General (Cămin + Vega)</option>}
                           </select>
                         </div>
                         <div className="field">
@@ -1693,6 +1698,7 @@ export default function Dashboard({ user, canSwitchSection }) {
                   >
                     <option value="administrator_centru">Administrator de Centru</option>
                     <option value="admin">Admin</option>
+                    {isSuperAdmin && <option value="super_admin">Admin General (Cămin + Vega)</option>}
                   </select>
                 </div>
               </div>

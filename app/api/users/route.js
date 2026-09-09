@@ -6,6 +6,18 @@ export const dynamic = "force-dynamic";
 
 // Doar admin poate vedea/crea utilizatori - e panoul care ii permite sa
 // adauge administratori de centru direct din browser, fara terminal.
+//
+// super_admin e un caz special: pe langa admin/administrator_centru, mai
+// vede si poate gestiona alte conturi super_admin (sa se vada intre ei, sa
+// se editeze unul pe altul, sa adauge un super_admin nou sau sa promoveze pe
+// cineva la super_admin). Un admin obisnuit (nu super_admin) NU vede
+// niciodata conturile super_admin, nici macar ca existenta - la fel cum nu
+// vede conturile Vega.
+function allowedRolesFor(actor) {
+  return actor.role === "super_admin"
+    ? ["admin", "administrator_centru", "super_admin"]
+    : ["admin", "administrator_centru"];
+}
 
 export async function GET() {
   const { user, error } = requireUser();
@@ -18,8 +30,9 @@ export async function GET() {
     .select("id, email, full_name, role, user_centers(center_id)")
     // Filtru explicit pe rol: un cont admin de la Camin Romantic nu trebuie sa
     // vada NICIODATA conturile de la sectiunea separata Vega Constanta
-    // (vega_admin / vega_manager), nici macar ca existenta.
-    .in("role", ["admin", "administrator_centru"])
+    // (vega_admin / vega_manager), nici macar ca existenta. Un super_admin
+    // vede in plus si celelalte conturi super_admin.
+    .in("role", allowedRolesFor(user))
     .order("created_at", { ascending: true });
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
@@ -48,7 +61,7 @@ export async function POST(request) {
   if (!email || !password || !full_name || !role) {
     return NextResponse.json({ error: "Toate câmpurile sunt obligatorii." }, { status: 400 });
   }
-  if (!["admin", "administrator_centru"].includes(role)) {
+  if (!allowedRolesFor(user).includes(role)) {
     return NextResponse.json({ error: "Rol invalid." }, { status: 400 });
   }
   if (role === "administrator_centru" && centerIds.length === 0) {

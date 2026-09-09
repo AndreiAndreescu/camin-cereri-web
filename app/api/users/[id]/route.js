@@ -9,6 +9,17 @@ export const dynamic = "force-dynamic";
 // schimba in ambele locuri - contul de autentificare din Supabase (cu
 // email_confirm: true, la fel ca la creare, ca sa nu fie nevoie de
 // reconfirmare) si tabelul profiles, care il tine separat pentru afisare.
+//
+// super_admin poate in plus edita alte conturi super_admin (inclusiv sa
+// promoveze un admin/administrator_centru la super_admin, schimband rolul),
+// si sa se editeze pe sine. Un admin obisnuit nu poate atinge niciun cont
+// super_admin - vezi allowedRolesFor in ../route.js.
+function allowedRolesFor(actor) {
+  return actor.role === "super_admin"
+    ? ["admin", "administrator_centru", "super_admin"]
+    : ["admin", "administrator_centru"];
+}
+
 export async function PATCH(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
@@ -17,17 +28,19 @@ export async function PATCH(request, { params }) {
 
   const id = params.id;
   const db = supabaseAdmin();
+  const allowedRoles = allowedRolesFor(user);
 
-  // Verificam ca profilul-tinta are deja un rol Camin Romantic, altfel un
-  // admin nu ar trebui sa poata atinge (nici macar sa vada ca exista) un cont
-  // vega_admin/vega_manager de la sectiunea separata Vega Constanta.
+  // Verificam ca profilul-tinta are deja un rol Camin Romantic vizibil
+  // pentru actor, altfel un admin nu ar trebui sa poata atinge (nici macar sa
+  // vada ca exista) un cont vega_admin/vega_manager sau (daca nu e el insusi
+  // super_admin) un cont super_admin.
   const { data: target, error: targetError } = await db
     .from("profiles")
     .select("id, role")
     .eq("id", id)
     .maybeSingle();
   if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
-  if (!target || !["admin", "administrator_centru"].includes(target.role)) {
+  if (!target || !allowedRoles.includes(target.role)) {
     return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
 
@@ -42,7 +55,7 @@ export async function PATCH(request, { params }) {
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return NextResponse.json({ error: "Emailul nu pare valid." }, { status: 400 });
   }
-  if (!["admin", "administrator_centru"].includes(role)) {
+  if (!allowedRoles.includes(role)) {
     return NextResponse.json({ error: "Rol invalid." }, { status: 400 });
   }
   if (role === "administrator_centru" && centerIds.length === 0) {
@@ -113,15 +126,17 @@ export async function DELETE(request, { params }) {
 
   const db = supabaseAdmin();
 
-  // Acelasi filtru ca la PATCH: un admin nu poate sterge un cont care nu are
-  // deja un rol Camin Romantic (blocheaza orice atingere a conturilor Vega).
+  // Acelasi filtru ca la PATCH: un admin obisnuit nu poate sterge un cont
+  // care nu are deja un rol Camin Romantic vizibil pentru el (blocheaza orice
+  // atingere a conturilor Vega si, daca nu e el insusi super_admin, a
+  // conturilor super_admin).
   const { data: target, error: targetError } = await db
     .from("profiles")
     .select("id, role")
     .eq("id", id)
     .maybeSingle();
   if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
-  if (!target || !["admin", "administrator_centru"].includes(target.role)) {
+  if (!target || !allowedRolesFor(user).includes(target.role)) {
     return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
 
