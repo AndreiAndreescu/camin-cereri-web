@@ -34,8 +34,8 @@ export default function LoginPage() {
   return (
     <div id="login-screen">
       <form className="login-box" onSubmit={onSubmit}>
-        <h1>Cămin Romantic</h1>
-        <p className="subtitle">Evidență Referate de Necesitate</p>
+        <h1>Referate de Necesitate</h1>
+        <p className="subtitle">Cămin Romantic</p>
 
         <label>Email</label>
         <input
