@@ -73,6 +73,61 @@ sunt plătite/contul există.
   să ajungi la o anumită secțiune. Numărul de lângă unele din ele arată câte
   elemente sunt acolo, dintr-o privire.
 
+## Vega Constanța — sectiune complet separată (Salon Beauty + Restaurant)
+
+Aplicația mai are o secțiune complet izolată, "Vega Constanța", pentru Salon
+Beauty și Restaurant. **Izolare totală, în ambele sensuri**: nimeni de la
+Asociația Cămin Romantic (admin, administrator de centru) nu poate vedea sau
+atinge absolut nimic din Vega Constanța, și invers, nimeni de la Vega
+Constanța nu poate vedea Cămin Romantic. Nu e doar o restricție de interfață —
+e construită așa la nivel de bază de date și server:
+
+- Tabele complet separate (`vega_locations`, `vega_products`, `vega_requests`,
+  `vega_request_items`, `vega_request_attachments`) — nu ating deloc tabelele
+  de la Cămin Romantic (`centers`, `requests`, `products`, etc).
+- Bucket separat de Storage (`vega-atasamente`) pentru fișierele atașate.
+- Rute API separate, sub `/api/vega/...`, care resping automat orice cont
+  admin/administrator de centru; rutele de la Cămin Romantic (`/api/users`,
+  etc.) resping la fel de strict orice cont Vega, și au fost verificate să nu
+  poată nici măcar vedea că există conturi Vega în baza de date.
+- Interfață complet separată (`VegaDashboard.js`), afișată automat la login
+  în funcție de rol — nu există niciun buton sau link care să treacă dintr-o
+  secțiune în alta.
+
+**Roluri** (2 roluri noi, fără nicio legătură cu cele de la Cămin Romantic):
+
+- **Admin Vega** (`vega_admin`) — vede și gestionează ambele locații (Salon
+  Beauty și Restaurant): catalogul de produse al fiecăreia, locațiile în
+  sine, utilizatorii Vega, lista "De luat" agregată, și poate accepta/
+  respinge/rezolva referate de la orice locație.
+- **Manager locație** (`vega_manager`) — asignat la o locație (sau mai
+  multe, dacă e cazul). Spre deosebire de administratorul de centru de la
+  Cămin Romantic, managerul de locație CREEAZĂ **și** ACCEPTĂ/RESPINGE/
+  REZOLVĂ singur referatele locației lui — e "șeful" acelei locații. Nu vede
+  lista globală "De luat" și nu vede cealaltă locație.
+
+Fiecare locație (Salon Beauty, Restaurant) are propriul catalog de produse,
+complet separat — nu împart produse nici măcar între ele.
+
+### Cum creezi primul cont Vega (o singură dată)
+
+La fel ca la Cămin Romantic, primul cont trebuie creat din terminal (nu
+există încă nimeni care să-l creeze din aplicație):
+
+```bash
+npm run create-user -- --email=admin@vegaconstanta.com --password=parola123 --name="Admin Vega" --role=vega_admin
+```
+
+De acolo încolo, acest cont poate crea manageri de locație direct din
+aplicație, din panoul **Utilizatori** (secțiunea Vega). Dacă preferi tot
+terminalul pentru un manager de locație:
+
+```bash
+npm run create-user -- --email=beauty@vegaconstanta.com --password=parola123 --name="Manager Salon Beauty" --role=vega_manager --location="Salon Beauty"
+```
+
+(Ca să vezi numele exacte ale locațiilor: `npm run create-user -- --list-locations`.)
+
 Nimic din toate astea nu necesită cunoștințe tehnice după ce e pus o dată la
 punct — pașii de mai jos sunt gândiți să fie urmați o singură dată.
 
@@ -196,6 +251,10 @@ NU rula din nou `schema.sql` — în schimb, rulează pe rând, în Supabase →
 6. `supabase/migration_v6.sql` — atașamente (poze/documente) per referat;
    creează și bucket-ul privat de Storage „atasamente-referate" unde se țin
    fișierele.
+7. `supabase/migration_v7.sql` — secțiunea complet separată Vega Constanța
+   (Salon Beauty + Restaurant): tabele proprii, bucket propriu de Storage și
+   cele două roluri noi (`vega_admin`, `vega_manager`). Nu afectează deloc
+   datele de la Cămin Romantic.
 
 Sunt sigure de rulat de mai multe ori și nu șterg nimic din datele existente.
 

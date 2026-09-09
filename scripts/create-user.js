@@ -1,14 +1,22 @@
 #!/usr/bin/env node
 // Creeaza un utilizator nou (cont + profil cu rol) intr-o singura comanda.
+// Functioneaza pentru ambele sectiuni ale aplicatiei - Camin Romantic
+// (admin, administrator_centru) SI Vega Constanta (vega_admin, vega_manager,
+// complet separata) - foloseste rolul ca sa stie in care sectiune lucreaza.
 //
-// Exemple:
+// Exemple - Camin Romantic:
 //   npm run create-user -- --email=sefa@caminromantic.com --password=parola123 --name="Numele Sefei" --role=admin
 //   npm run create-user -- --email=centru9@caminromantic.com --password=parola123 --name="Nume Administrator" --role=administrator_centru --center="CIA Romantic"
 //   (mai multe centre, separate prin virgula:)
 //   npm run create-user -- --email=... --password=... --name="..." --role=administrator_centru --center="CIA Romantic,CIA Casa cu Tei"
 //
-// Ca sa vezi numele exacte ale centrelor din baza de date:
+// Exemple - Vega Constanta (sectiune separata, vezi migration_v7.sql):
+//   npm run create-user -- --email=admin@vegaconstanta.com --password=parola123 --name="Admin Vega" --role=vega_admin
+//   npm run create-user -- --email=beauty@vegaconstanta.com --password=parola123 --name="Manager Salon Beauty" --role=vega_manager --location="Salon Beauty"
+//
+// Ca sa vezi numele exacte ale centrelor/locatiilor din baza de date:
 //   npm run create-user -- --list-centers
+//   npm run create-user -- --list-locations
 
 require("dotenv").config({ path: ".env.local" });
 const { createClient } = require("@supabase/supabase-js");
@@ -39,35 +47,43 @@ async function main() {
   if (args["list-centers"]) {
     const { data, error } = await db.from("centers").select("id, name").order("name");
     if (error) throw error;
-    console.log("Centre disponibile:\n");
+    console.log("Centre disponibile (Cămin Romantic):\n");
     data.forEach((c) => console.log(`  [${c.id}] ${c.name}`));
     return;
   }
 
-  const { email, password, name, role, center } = args;
+  if (args["list-locations"]) {
+    const { data, error } = await db.from("vega_locations").select("id, name").order("name");
+    if (error) throw error;
+    console.log("Locații disponibile (Vega Constanța):\n");
+    data.forEach((l) => console.log(`  [${l.id}] ${l.name}`));
+    return;
+  }
+
+  const { email, password, name, role, center, location } = args;
+  const CAMIN_ROLES = ["admin", "administrator_centru"];
+  const VEGA_ROLES = ["vega_admin", "vega_manager"];
 
   if (!email || !password || !name || !role) {
     console.error(
-      'Lipsesc argumente. Foloseste: --email=... --password=... --name="..." --role=admin|administrator_centru [--center="Nume centru[,Alt centru]"]'
+      'Lipsesc argumente. Foloseste: --email=... --password=... --name="..." --role=admin|administrator_centru|vega_admin|vega_manager [--center="Nume centru[,Alt centru]"] [--location="Nume locație[,Altă locație]"]'
     );
     process.exit(1);
   }
-  if (!["admin", "administrator_centru"].includes(role)) {
-    console.error('Rolul trebuie sa fie "admin" sau "administrator_centru".');
+  if (![...CAMIN_ROLES, ...VEGA_ROLES].includes(role)) {
+    console.error('Rolul trebuie sa fie unul dintre: admin, administrator_centru, vega_admin, vega_manager.');
     process.exit(1);
   }
 
-  let centerIds = [];
+  const isVega = VEGA_ROLES.includes(role);
+  let linkIds = [];
+
   if (role === "administrator_centru") {
     if (!center) {
       console.error('Pentru rolul "administrator_centru" e obligatoriu si --center="Nume centru exact[,Alt centru]".');
       process.exit(1);
     }
-    const centerNames = String(center)
-      .split(",")
-      .map((c) => c.trim())
-      .filter(Boolean);
-
+    const centerNames = String(center).split(",").map((c) => c.trim()).filter(Boolean);
     for (const centerName of centerNames) {
       const { data: centerRow, error: centerError } = await db
         .from("centers")
@@ -81,7 +97,30 @@ async function main() {
         );
         process.exit(1);
       }
-      centerIds.push(centerRow.id);
+      linkIds.push(centerRow.id);
+    }
+  }
+
+  if (role === "vega_manager") {
+    if (!location) {
+      console.error('Pentru rolul "vega_manager" e obligatoriu si --location="Nume locație exact[,Altă locație]".');
+      process.exit(1);
+    }
+    const locationNames = String(location).split(",").map((l) => l.trim()).filter(Boolean);
+    for (const locationName of locationNames) {
+      const { data: locationRow, error: locationError } = await db
+        .from("vega_locations")
+        .select("id, name")
+        .ilike("name", locationName)
+        .maybeSingle();
+      if (locationError) throw locationError;
+      if (!locationRow) {
+        console.error(
+          `Nu am gasit nicio locație cu numele exact "${locationName}". Ruleaza "npm run create-user -- --list-locations" ca sa vezi numele corecte.`
+        );
+        process.exit(1);
+      }
+      linkIds.push(locationRow.id);
     }
   }
 
@@ -106,18 +145,20 @@ async function main() {
     process.exit(1);
   }
 
-  if (centerIds.length > 0) {
+  if (linkIds.length > 0) {
+    const linkTable = isVega ? "vega_user_locations" : "user_centers";
+    const linkColumn = isVega ? "location_id" : "center_id";
     const { error: linkError } = await db
-      .from("user_centers")
-      .insert(centerIds.map((center_id) => ({ user_id: created.user.id, center_id })));
+      .from(linkTable)
+      .insert(linkIds.map((id) => ({ user_id: created.user.id, [linkColumn]: id })));
     if (linkError) {
-      console.error("Contul si profilul au fost create, dar asignarea centrelor a esuat:", linkError.message);
+      console.error("Contul si profilul au fost create, dar asignarea centrelor/locațiilor a esuat:", linkError.message);
       process.exit(1);
     }
   }
 
   console.log(
-    `Cont creat cu succes: ${email} (rol: ${role}${centerIds.length ? `, centre: ${centerIds.join(", ")}` : ""}).`
+    `Cont creat cu succes: ${email} (rol: ${role}${linkIds.length ? `, ${isVega ? "locații" : "centre"}: ${linkIds.join(", ")}` : ""}).`
   );
 }
 

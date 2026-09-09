@@ -1,25 +1,23 @@
 import { NextResponse } from "next/server";
-import { requireUser, requireRole } from "../../../lib/auth";
-import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { requireUser } from "../../../../lib/auth";
+import { requireVegaAdmin, VEGA_ROLES } from "../../../../lib/vegaAuth";
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-// Doar admin poate vedea/crea utilizatori - e panoul care ii permite sa
-// adauge administratori de centru direct din browser, fara terminal.
-
+// Doar vega_admin vede/creeaza utilizatori Vega - si DOAR conturi cu rol
+// vega_admin/vega_manager sunt returnate aici (filtru explicit pe rol), ca sa
+// nu poata aparea niciodata un cont Camin Romantic in aceasta lista.
 export async function GET() {
   const { user, error } = requireUser();
   if (error) return error;
-  const roleError = requireRole(user, ["admin"]);
-  if (roleError) return roleError;
+  const vegaError = requireVegaAdmin(user);
+  if (vegaError) return vegaError;
 
   const { data, error: dbError } = await supabaseAdmin()
     .from("profiles")
-    .select("id, email, full_name, role, user_centers(center_id)")
-    // Filtru explicit pe rol: un cont admin de la Camin Romantic nu trebuie sa
-    // vada NICIODATA conturile de la sectiunea separata Vega Constanta
-    // (vega_admin / vega_manager), nici macar ca existenta.
-    .in("role", ["admin", "administrator_centru"])
+    .select("id, email, full_name, role, vega_user_locations(location_id)")
+    .in("role", VEGA_ROLES)
     .order("created_at", { ascending: true });
 
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
@@ -29,7 +27,7 @@ export async function GET() {
     email: u.email,
     full_name: u.full_name,
     role: u.role,
-    center_ids: (u.user_centers || []).map((c) => c.center_id),
+    location_ids: (u.vega_user_locations || []).map((l) => l.location_id),
   }));
 
   return NextResponse.json({ users });
@@ -38,22 +36,22 @@ export async function GET() {
 export async function POST(request) {
   const { user, error } = requireUser();
   if (error) return error;
-  const roleError = requireRole(user, ["admin"]);
-  if (roleError) return roleError;
+  const vegaError = requireVegaAdmin(user);
+  if (vegaError) return vegaError;
 
   const body = await request.json().catch(() => ({}));
   const { email, password, full_name, role } = body || {};
-  const centerIds = Array.isArray(body.center_ids) ? body.center_ids.map(Number).filter(Boolean) : [];
+  const locationIds = Array.isArray(body.location_ids) ? body.location_ids.map(Number).filter(Boolean) : [];
 
   if (!email || !password || !full_name || !role) {
     return NextResponse.json({ error: "Toate câmpurile sunt obligatorii." }, { status: 400 });
   }
-  if (!["admin", "administrator_centru"].includes(role)) {
+  if (!VEGA_ROLES.includes(role)) {
     return NextResponse.json({ error: "Rol invalid." }, { status: 400 });
   }
-  if (role === "administrator_centru" && centerIds.length === 0) {
+  if (role === "vega_manager" && locationIds.length === 0) {
     return NextResponse.json(
-      { error: "Cel puțin un centru este obligatoriu pentru administrator de centru." },
+      { error: "Cel puțin o locație este obligatorie pentru manager." },
       { status: 400 }
     );
   }
@@ -74,12 +72,7 @@ export async function POST(request) {
 
   const { data: profile, error: profileError } = await db
     .from("profiles")
-    .insert({
-      id: created.user.id,
-      email,
-      full_name,
-      role,
-    })
+    .insert({ id: created.user.id, email, full_name, role })
     .select("id, email, full_name, role")
     .single();
 
@@ -87,14 +80,14 @@ export async function POST(request) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
 
-  if (role === "administrator_centru" && centerIds.length > 0) {
+  if (role === "vega_manager" && locationIds.length > 0) {
     const { error: linkError } = await db
-      .from("user_centers")
-      .insert(centerIds.map((center_id) => ({ user_id: profile.id, center_id })));
+      .from("vega_user_locations")
+      .insert(locationIds.map((location_id) => ({ user_id: profile.id, location_id })));
     if (linkError) {
       return NextResponse.json({ error: linkError.message }, { status: 500 });
     }
   }
 
-  return NextResponse.json({ user: { ...profile, center_ids: centerIds } }, { status: 201 });
+  return NextResponse.json({ user: { ...profile, location_ids: locationIds } }, { status: 201 });
 }

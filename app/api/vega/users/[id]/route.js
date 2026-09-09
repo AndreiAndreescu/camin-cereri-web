@@ -1,40 +1,38 @@
 import { NextResponse } from "next/server";
-import { requireUser, requireRole } from "../../../../lib/auth";
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { requireUser } from "../../../../../lib/auth";
+import { requireVegaAdmin, VEGA_ROLES } from "../../../../../lib/vegaAuth";
+import { supabaseAdmin } from "../../../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-// Doar admin poate edita un utilizator: nume, email, rol, centre asignate, si
-// optional o parola noua (daca vrea sa reseteze parola cuiva). Emailul se
-// schimba in ambele locuri - contul de autentificare din Supabase (cu
-// email_confirm: true, la fel ca la creare, ca sa nu fie nevoie de
-// reconfirmare) si tabelul profiles, care il tine separat pentru afisare.
+// Doar vega_admin poate edita un utilizator Vega: nume, email, rol, locații
+// asignate, si optional o parola noua. Verificam explicit ca profilul-tinta
+// are deja un rol Vega, altfel un cont vega_admin nu ar trebui sa poata
+// atinge (nici macar sa vada ca exista) un cont admin/administrator_centru
+// de la Camin Romantic - izolarea trebuie sa fie completa, in ambele sensuri.
 export async function PATCH(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
-  const roleError = requireRole(user, ["admin"]);
-  if (roleError) return roleError;
+  const vegaError = requireVegaAdmin(user);
+  if (vegaError) return vegaError;
 
   const id = params.id;
   const db = supabaseAdmin();
 
-  // Verificam ca profilul-tinta are deja un rol Camin Romantic, altfel un
-  // admin nu ar trebui sa poata atinge (nici macar sa vada ca exista) un cont
-  // vega_admin/vega_manager de la sectiunea separata Vega Constanta.
   const { data: target, error: targetError } = await db
     .from("profiles")
     .select("id, role")
     .eq("id", id)
     .maybeSingle();
   if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
-  if (!target || !["admin", "administrator_centru"].includes(target.role)) {
+  if (!target || !VEGA_ROLES.includes(target.role)) {
     return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));
   const { full_name, role, password } = body || {};
   const email = body.email ? String(body.email).trim() : "";
-  const centerIds = Array.isArray(body.center_ids) ? body.center_ids.map(Number).filter(Boolean) : [];
+  const locationIds = Array.isArray(body.location_ids) ? body.location_ids.map(Number).filter(Boolean) : [];
 
   if (!full_name || !role || !email) {
     return NextResponse.json({ error: "Numele, emailul și rolul sunt obligatorii." }, { status: 400 });
@@ -42,12 +40,12 @@ export async function PATCH(request, { params }) {
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return NextResponse.json({ error: "Emailul nu pare valid." }, { status: 400 });
   }
-  if (!["admin", "administrator_centru"].includes(role)) {
+  if (!VEGA_ROLES.includes(role)) {
     return NextResponse.json({ error: "Rol invalid." }, { status: 400 });
   }
-  if (role === "administrator_centru" && centerIds.length === 0) {
+  if (role === "vega_manager" && locationIds.length === 0) {
     return NextResponse.json(
-      { error: "Cel puțin un centru este obligatoriu pentru administrator de centru." },
+      { error: "Cel puțin o locație este obligatorie pentru manager." },
       { status: 400 }
     );
   }
@@ -55,10 +53,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: "Parola trebuie să aibă cel puțin 6 caractere." }, { status: 400 });
   }
 
-  const { error: authEmailError } = await db.auth.admin.updateUserById(id, {
-    email,
-    email_confirm: true,
-  });
+  const { error: authEmailError } = await db.auth.admin.updateUserById(id, { email, email_confirm: true });
   if (authEmailError) {
     return NextResponse.json({ error: authEmailError.message }, { status: 400 });
   }
@@ -74,15 +69,15 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
 
-  const { error: clearError } = await db.from("user_centers").delete().eq("user_id", id);
+  const { error: clearError } = await db.from("vega_user_locations").delete().eq("user_id", id);
   if (clearError) {
     return NextResponse.json({ error: clearError.message }, { status: 500 });
   }
 
-  if (role === "administrator_centru" && centerIds.length > 0) {
+  if (role === "vega_manager" && locationIds.length > 0) {
     const { error: linkError } = await db
-      .from("user_centers")
-      .insert(centerIds.map((center_id) => ({ user_id: id, center_id })));
+      .from("vega_user_locations")
+      .insert(locationIds.map((location_id) => ({ user_id: id, location_id })));
     if (linkError) {
       return NextResponse.json({ error: linkError.message }, { status: 500 });
     }
@@ -95,16 +90,17 @@ export async function PATCH(request, { params }) {
     }
   }
 
-  return NextResponse.json({ user: { ...profile, center_ids: role === "administrator_centru" ? centerIds : [] } });
+  return NextResponse.json({ user: { ...profile, location_ids: role === "vega_manager" ? locationIds : [] } });
 }
 
-// Doar admin poate sterge utilizatori. Un admin nu isi poate sterge propriul
-// cont din aplicatie (ca sa nu ramana nimeni fara acces din greseala).
+// Doar vega_admin poate sterge utilizatori Vega, si nu isi poate sterge
+// propriul cont. Acelasi filtru de rol ca la PATCH - un vega_admin nu poate
+// sterge un cont care nu are deja un rol Vega.
 export async function DELETE(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
-  const roleError = requireRole(user, ["admin"]);
-  if (roleError) return roleError;
+  const vegaError = requireVegaAdmin(user);
+  if (vegaError) return vegaError;
 
   const id = params.id;
   if (id === user.id) {
@@ -112,16 +108,13 @@ export async function DELETE(request, { params }) {
   }
 
   const db = supabaseAdmin();
-
-  // Acelasi filtru ca la PATCH: un admin nu poate sterge un cont care nu are
-  // deja un rol Camin Romantic (blocheaza orice atingere a conturilor Vega).
   const { data: target, error: targetError } = await db
     .from("profiles")
     .select("id, role")
     .eq("id", id)
     .maybeSingle();
   if (targetError) return NextResponse.json({ error: targetError.message }, { status: 500 });
-  if (!target || !["admin", "administrator_centru"].includes(target.role)) {
+  if (!target || !VEGA_ROLES.includes(target.role)) {
     return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
 

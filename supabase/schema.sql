@@ -15,7 +15,7 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   full_name text not null,
-  role text not null check (role in ('admin', 'administrator_centru')),
+  role text not null check (role in ('admin', 'administrator_centru', 'vega_admin', 'vega_manager')),
   center_id integer references centers(id), -- pastrat doar istoric; nefolosit - vezi user_centers
   created_at timestamptz not null default now()
 );
@@ -88,6 +88,71 @@ insert into storage.buckets (id, name, public)
 values ('atasamente-referate', 'atasamente-referate', false)
 on conflict (id) do nothing;
 
+-- Sectiune COMPLET SEPARATA, "Vega Constanta" (Salon Beauty + Restaurant),
+-- vezi supabase/migration_v7.sql pentru explicatii detaliate. Nu foloseste
+-- nicio tabela de mai sus - izolare totala fata de Camin Romantic.
+create table if not exists vega_locations (
+  id serial primary key,
+  name text not null unique
+);
+
+create table if not exists vega_user_locations (
+  user_id uuid not null references profiles(id) on delete cascade,
+  location_id integer not null references vega_locations(id) on delete cascade,
+  primary key (user_id, location_id)
+);
+
+create table if not exists vega_products (
+  id serial primary key,
+  location_id integer not null references vega_locations(id) on delete cascade,
+  name text not null,
+  unique (location_id, name)
+);
+
+create table if not exists vega_requests (
+  id serial primary key,
+  location_id integer not null references vega_locations(id),
+  created_by uuid not null references profiles(id),
+  created_by_name text not null,
+  created_at timestamptz not null default now(),
+  urgent boolean not null default false,
+  status text not null default 'asteptare' check (status in ('asteptare', 'in_curs', 'rezolvat', 'respins')),
+  decided_by uuid references profiles(id),
+  decided_by_name text,
+  decided_at timestamptz,
+  resolved_by uuid references profiles(id),
+  resolved_by_name text,
+  resolved_at timestamptz
+);
+
+create table if not exists vega_request_items (
+  id serial primary key,
+  request_id integer not null references vega_requests(id) on delete cascade,
+  nr_crt integer not null,
+  produs text not null,
+  cantitate text not null,
+  detalii text,
+  culoare text,
+  marime text,
+  sex text check (sex in ('Masculin', 'Feminin') or sex is null)
+);
+
+create table if not exists vega_request_attachments (
+  id serial primary key,
+  request_id integer not null references vega_requests(id) on delete cascade,
+  file_name text not null,
+  storage_path text not null,
+  mime_type text,
+  size_bytes integer,
+  uploaded_by uuid references profiles(id),
+  uploaded_by_name text,
+  created_at timestamptz not null default now()
+);
+
+insert into storage.buckets (id, name, public)
+values ('vega-atasamente', 'vega-atasamente', false)
+on conflict (id) do nothing;
+
 -- RLS activat pe toate tabelele, fara nicio policy pentru clientul obisnuit:
 -- inseamna ca NIMENI nu poate citi/scrie direct din browser cu cheia publica
 -- (anon key). Toate operatiile trec exclusiv prin serverul aplicatiei
@@ -101,6 +166,12 @@ alter table requests enable row level security;
 alter table request_items enable row level security;
 alter table products enable row level security;
 alter table request_attachments enable row level security;
+alter table vega_locations enable row level security;
+alter table vega_user_locations enable row level security;
+alter table vega_products enable row level security;
+alter table vega_requests enable row level security;
+alter table vega_request_items enable row level security;
+alter table vega_request_attachments enable row level security;
 
 -- Cele 30 de centre reale (de pe caminromantic.com/admin/centers).
 insert into centers (name) values
@@ -134,4 +205,7 @@ insert into centers (name) values
   ('SID Dizabilităţi Mihai Bravu'),
   ('Symphony'),
   ('Test Center')
+on conflict (name) do nothing;
+
+insert into vega_locations (name) values ('Salon Beauty'), ('Restaurant')
 on conflict (name) do nothing;

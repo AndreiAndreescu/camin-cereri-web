@@ -32,16 +32,25 @@ export async function POST(request) {
     );
   }
 
-  const { data: centerLinks } = await supabaseAdmin()
-    .from("user_centers")
-    .select("center_id")
-    .eq("user_id", profile.id);
+  // center_ids tine locatiile/centrele asignate userului, indiferent de
+  // sectiune: pentru administrator_centru vin din user_centers (Camin
+  // Romantic), pentru vega_manager vin din vega_user_locations (Vega
+  // Constanta - tabel complet separat). admin/vega_admin nu au restrictii,
+  // deci raman cu array gol.
+  const linksTable = profile.role === "vega_manager" ? "vega_user_locations" : "user_centers";
+  const linksColumn = profile.role === "vega_manager" ? "location_id" : "center_id";
+
+  let centerIds = [];
+  if (profile.role === "administrator_centru" || profile.role === "vega_manager") {
+    const { data: links } = await supabaseAdmin().from(linksTable).select(linksColumn).eq("user_id", profile.id);
+    centerIds = (links || []).map((l) => l[linksColumn]);
+  }
 
   const sessionUser = {
     id: profile.id,
     full_name: profile.full_name,
     role: profile.role,
-    center_ids: (centerLinks || []).map((c) => c.center_id),
+    center_ids: centerIds,
   };
 
   const token = signSession(sessionUser);
