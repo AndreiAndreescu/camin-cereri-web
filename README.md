@@ -102,10 +102,11 @@ e construită așa la nivel de bază de date și server:
   sine, utilizatorii Vega, lista "De luat" agregată, și poate accepta/
   respinge/rezolva referate de la orice locație.
 - **Manager locație** (`vega_manager`) — asignat la o locație (sau mai
-  multe, dacă e cazul). Spre deosebire de administratorul de centru de la
-  Cămin Romantic, managerul de locație CREEAZĂ **și** ACCEPTĂ/RESPINGE/
-  REZOLVĂ singur referatele locației lui — e "șeful" acelei locații. Nu vede
-  lista globală "De luat" și nu vede cealaltă locație.
+  multe, dacă e cazul). La fel ca administratorul de centru de la Cămin
+  Romantic: CREEAZĂ referate și le poate edita cât timp sunt încă în
+  așteptare (sau șterge, dacă a greșit ceva, tot cât sunt în așteptare), dar
+  NU poate accepta/respinge/rezolva — doar Admin Vega (sau Admin General)
+  decide. Nu vede lista globală "De luat" și nu vede cealaltă locație.
 
 Fiecare locație (Salon Beauty, Restaurant) are propriul catalog de produse,
 complet separat — nu împart produse nici măcar între ele.

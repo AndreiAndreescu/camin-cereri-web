@@ -1250,7 +1250,9 @@ export default function VegaDashboard({ user, canSwitchSection }) {
                     )}
                   </div>
 
-                  {r.status === "asteptare" && (
+                  {/* Doar vega_admin/super_admin accepta/resping/rezolva - vega_manager
+                      NU mai are voie, doar creeaza si editeaza cat e in asteptare. */}
+                  {isVegaAdmin && r.status === "asteptare" && (
                     <div className="request-actions">
                       <button className="action-btn accept-btn" onClick={() => decide(r.id, "accept")}>
                         Acceptă
@@ -1260,7 +1262,7 @@ export default function VegaDashboard({ user, canSwitchSection }) {
                       </button>
                     </div>
                   )}
-                  {r.status === "in_curs" && (
+                  {isVegaAdmin && r.status === "in_curs" && (
                     <div className="request-actions">
                       <button className="action-btn resolve-btn" onClick={() => resolve(r.id)}>
                         Marchează rezolvat
@@ -1276,7 +1278,7 @@ export default function VegaDashboard({ user, canSwitchSection }) {
                     <button className="secondary-btn" type="button" onClick={() => printRequest(r)}>
                       Printează
                     </button>
-                    {(isVegaAdmin ? r.status === "rezolvat" || r.status === "respins" : true) && (
+                    {(isVegaAdmin ? r.status === "rezolvat" || r.status === "respins" : r.status === "asteptare") && (
                       <button className="action-btn reject-btn" onClick={() => deleteRequest(r.id)}>
                         Șterge referatul
                       </button>

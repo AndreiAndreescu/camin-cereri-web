@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "../../../../../../lib/auth";
-import { requireVegaUser, canAccessVegaLocation } from "../../../../../../lib/vegaAuth";
+import { requireVegaAdmin, canAccessVegaLocation } from "../../../../../../lib/vegaAuth";
 import { supabaseAdmin } from "../../../../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-// Spre deosebire de Camin Romantic (unde doar admin accepta/respinge),
-// vega_manager poate decide singur pentru propria locatie - e "seful" ei.
-// vega_admin poate decide pentru orice locatie.
+// La fel ca la Camin Romantic (unde doar admin accepta/respinge, nu si
+// administrator de centru), la Vega Constanta doar vega_admin (si
+// super_admin) pot accepta/respinge - vega_manager NU mai poate decide,
+// doar creeaza si editeaza referatul cat e in asteptare.
 export async function POST(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
-  const vegaError = requireVegaUser(user);
+  const vegaError = requireVegaAdmin(user);
   if (vegaError) return vegaError;
 
   const id = Number(params.id);

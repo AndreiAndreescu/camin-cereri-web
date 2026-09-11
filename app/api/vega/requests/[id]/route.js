@@ -102,9 +102,11 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({ request: mapRequest({ ...updatedRequest, vega_request_items: itemRows }) });
 }
 
-// vega_admin poate sterge orice referat, dar doar dupa ce a fost deja decis
-// (rezolvat sau respins). vega_manager poate sterge orice referat al
-// locatiei lui, indiferent de status - e "seful" acelei locatii.
+// vega_admin (si super_admin) pot sterge orice referat, dar doar dupa ce a
+// fost deja decis (rezolvat sau respins). vega_manager NU mai poate
+// accepta/respinge/rezolva (vezi decide/resolve/route.js), deci poate sterge
+// DOAR propriile referate cat inca sunt "in asteptare" - de ex. daca a
+// gresit ceva la creare - nu si dupa ce au fost procesate de vega_admin.
 export async function DELETE(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
@@ -123,15 +125,25 @@ export async function DELETE(request, { params }) {
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
   if (!existing) return NextResponse.json({ error: "Referatul de necesitate nu a fost găsit." }, { status: 404 });
 
-  if (user.role === "vega_admin") {
+  if (user.role === "vega_admin" || user.role === "super_admin") {
     if (!["rezolvat", "respins"].includes(existing.status)) {
       return NextResponse.json(
         { error: "Poți șterge doar referate de necesitate deja rezolvate sau respinse." },
         { status: 400 }
       );
     }
-  } else if (!canAccessVegaLocation(user, existing.location_id)) {
-    return NextResponse.json({ error: "Nu ai voie să ștergi referate de la altă locație." }, { status: 403 });
+  } else if (user.role === "vega_manager") {
+    if (!canAccessVegaLocation(user, existing.location_id)) {
+      return NextResponse.json({ error: "Nu ai voie să ștergi referate de la altă locație." }, { status: 403 });
+    }
+    if (existing.status !== "asteptare") {
+      return NextResponse.json(
+        { error: "Poți șterge doar referate de necesitate aflate încă în așteptare." },
+        { status: 400 }
+      );
+    }
+  } else {
+    return NextResponse.json({ error: "Nu ai voie să faci această acțiune." }, { status: 403 });
   }
 
   const { error: dbError } = await db.from("vega_requests").delete().eq("id", id);

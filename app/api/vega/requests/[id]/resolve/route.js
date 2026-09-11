@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "../../../../../../lib/auth";
-import { requireVegaUser, canAccessVegaLocation } from "../../../../../../lib/vegaAuth";
+import { requireVegaAdmin, canAccessVegaLocation } from "../../../../../../lib/vegaAuth";
 import { supabaseAdmin } from "../../../../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+// Doar vega_admin (si super_admin) pot marca un referat ca rezolvat -
+// vega_manager NU mai poate, la fel ca la decide/route.js.
 export async function POST(request, { params }) {
   const { user, error } = requireUser();
   if (error) return error;
-  const vegaError = requireVegaUser(user);
+  const vegaError = requireVegaAdmin(user);
   if (vegaError) return vegaError;
 
   const id = Number(params.id);
