@@ -243,8 +243,36 @@ body::before {
   border-radius: 10px;
   font-size: 16px;
   font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
-.login-box input:focus { outline: none; border-color: var(--primary); background: #fff; }
+.login-box input:hover { border-color: #c7cbf7; }
+.login-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* Ecranul scurt de bun venit, aratat imediat dupa un login reusit (vezi
+   WelcomeSplash.js) - reutilizeaza cardul de login, doar centrat si cu o
+   animatie de intrare. */
+.welcome-box {
+  align-items: center;
+  text-align: center;
+  animation: welcomeIn 0.45s ease both;
+}
+.welcome-box h1 { text-align: center; }
+.welcome-box .subtitle { text-align: center; margin-bottom: 0; }
+.welcome-smiley { margin-bottom: 4px; animation: smileyPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes welcomeIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes smileyPop {
+  0% { transform: scale(0.2) rotate(-18deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
 
 .login-box button { margin-top: 18px; }
 
@@ -439,14 +467,37 @@ main {
 
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .filters select {
-  padding: 7px 10px;
-  border: 1px solid var(--border);
+  padding: 7px 30px 7px 10px;
+  border: 1.5px solid var(--border);
   background: #fafbff;
   border-radius: 10px;
   font-size: 13px;
   font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.filters select:hover { border-color: #c7cbf7; }
+.filters select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 .urgent-filter { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+
+/* Orice <select> din aplicatie - inclusiv "Centru" la un referat nou -
+   arata in tema aplicatiei, nu ca dropdown-ul implicit al sistemului de
+   operare (sageata gri patrata din Windows/macOS). Sageata desenata e un SVG
+   inline in culoarea temei; pastram cursor:pointer ca sa fie clar ca e
+   clickabil. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 15px;
+  cursor: pointer;
+}
 
 /* New request form */
 .new-request .row {
@@ -468,6 +519,13 @@ textarea {
   font-size: 16px;
   font-family: inherit;
   width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.field select { padding-right: 38px; }
+.field select:hover,
+.field input:hover,
+textarea:hover {
+  border-color: #c7cbf7;
 }
 .field select:focus,
 .field input:focus,
@@ -475,6 +533,7 @@ textarea:focus {
   outline: none;
   border-color: var(--primary);
   background: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
 .urgent-field { justify-content: flex-end; }
@@ -502,11 +561,14 @@ textarea:focus {
   border-radius: 8px;
   font-size: 15px;
   font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+.items-table select { padding-right: 32px; background-size: 13px; background-position: right 8px center; }
 .items-table input:focus,
 .items-table select:focus {
   outline: none;
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
   background: #fff;
 }
 

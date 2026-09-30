@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import WelcomeSplash from "./WelcomeSplash";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [welcomeUser, setWelcomeUser] = useState(null);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -22,13 +24,21 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Eroare la autentificare.");
-      router.push("/dashboard");
-      router.refresh();
+      // Nu navigam imediat - aratam scurt ecranul de bun venit (zambet +
+      // mesaj personalizat), apoi intram pe dashboard.
+      setWelcomeUser(data.user);
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 1700);
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
+  }
+
+  if (welcomeUser) {
+    return <WelcomeSplash name={welcomeUser.full_name} />;
   }
 
   return (
