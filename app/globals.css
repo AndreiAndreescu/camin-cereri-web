@@ -37,9 +37,86 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 .hidden { display: none !important; }
+
+/* Fundal decorativ, global - "blob"-uri difuze in indigo (culorile
+   aplicatiei), care plutesc incontinuu (@keyframes, pe compositor - ieftin
+   de rulat) si se misca usor dupa cursor (transform setat direct din JS, in
+   AnimatedBackground.js). z-index negativ = sub tot continutul paginii
+   (carduri, topbar etc.), deasupra doar a fundalului gri al body-ului -
+   n-are cum sa blocheze vreun click ("pointer-events: none") si nu are
+   nevoie ca restul elementelor sa capete z-index explicit. */
+.bg-blobs {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.blob-wrap {
+  position: absolute;
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.4;
+  will-change: transform;
+}
+
+.blob-a {
+  top: -140px;
+  left: -100px;
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle, var(--primary) 0%, transparent 72%);
+  animation: blobFloatA 24s ease-in-out infinite;
+}
+
+.blob-b {
+  top: 30vh;
+  right: -160px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, #818cf8 0%, transparent 72%);
+  animation: blobFloatB 28s ease-in-out infinite;
+}
+
+.blob-c {
+  bottom: -160px;
+  left: 22vw;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--primary-dark) 0%, transparent 72%);
+  animation: blobFloatC 20s ease-in-out infinite;
+}
+
+@keyframes blobFloatA {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(70px, 50px) scale(1.08); }
+}
+@keyframes blobFloatB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-60px, 70px) scale(0.94); }
+}
+@keyframes blobFloatC {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, -60px) scale(1.06); }
+}
+
+/* Miscarea e mult mai discreta/oprita pentru cine a cerut explicit mai
+   putina miscare pe ecran (accesibilitate). */
+@media (prefers-reduced-motion: reduce) {
+  .blob-a, .blob-b, .blob-c { animation: none; }
+  .blob-wrap { transition: none; }
+}
 
 /* Login */
 #login-screen {

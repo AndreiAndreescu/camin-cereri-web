@@ -1,4 +1,5 @@
 import "./globals.css";
+import AnimatedBackground from "./AnimatedBackground";
 
 export const metadata = {
   title: "Cămin Romantic — Referate de Necesitate",
@@ -7,7 +8,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ro">
-      <body>{children}</body>
+      <body>
+        <AnimatedBackground />
+        {children}
+      </body>
     </html>
   );
 }
