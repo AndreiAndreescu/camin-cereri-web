@@ -27,6 +27,10 @@
   --rejected-bg: #f3f4f6;
 
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 10px rgba(16, 24, 40, 0.05);
+  --shadow-lg: 0 10px 34px rgba(79, 70, 229, 0.12), 0 2px 8px rgba(16, 24, 40, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.86);
+  --glass-border: rgba(255, 255, 255, 0.65);
 
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -38,6 +42,8 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .hidden { display: none !important; }
@@ -68,39 +74,44 @@ body {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(55px);
-  opacity: 0.55;
+  filter: blur(80px);
+  opacity: 0.6;
   will-change: transform;
 }
 
+/* Fiecare blob se stinge complet mult inainte de marginea lui reala (55% in
+   loc de 70%) + blur mult mai mare - asa nu se mai vede nicio muchie dreapta
+   acolo unde blob-ul e taiat de marginea ecranului cand sta pe jumatate in
+   afara ferestrei (asa arata "lipit si taiat"). Efectul se stinge lin, ca o
+   pata de lumina, nu ca o forma decupata. */
 .blob-a {
-  top: -10vh;
-  left: -8vw;
+  top: -6vh;
+  left: -4vw;
   width: 46vw;
   height: 46vw;
   min-width: 380px;
   min-height: 380px;
   max-width: 620px;
   max-height: 620px;
-  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--primary) 0%, transparent 55%);
   animation: blobFloatA 13s ease-in-out infinite;
 }
 
 .blob-b {
   top: 40vh;
-  right: -12vw;
+  right: -6vw;
   width: 40vw;
   height: 40vw;
   min-width: 340px;
   min-height: 340px;
   max-width: 560px;
   max-height: 560px;
-  background: radial-gradient(circle, #818cf8 0%, transparent 70%);
+  background: radial-gradient(circle, #818cf8 0%, transparent 55%);
   animation: blobFloatB 16s ease-in-out infinite;
 }
 
 .blob-c {
-  bottom: -14vh;
+  bottom: -8vh;
   left: 18vw;
   width: 48vw;
   height: 48vw;
@@ -108,7 +119,7 @@ body {
   min-height: 400px;
   max-width: 640px;
   max-height: 640px;
-  background: radial-gradient(circle, var(--primary-dark) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--primary-dark) 0%, transparent 55%);
   animation: blobFloatC 11s ease-in-out infinite;
 }
 
@@ -121,7 +132,7 @@ body {
   min-height: 260px;
   max-width: 420px;
   max-height: 420px;
-  background: radial-gradient(circle, #a5b4fc 0%, transparent 70%);
+  background: radial-gradient(circle, #a5b4fc 0%, transparent 55%);
   animation: blobFloatD 14s ease-in-out infinite;
 }
 
@@ -172,6 +183,22 @@ body {
   .blob-a, .blob-b, .blob-c, .blob-d { animation-duration: 40s; }
 }
 
+/* Voal foarte discret, pe tot fundalul, sub blob-uri (z-index -2) - leaga
+   vizual zonele goale din jurul continutului cu restul paginii, ca sa nu mai
+   arate ca niste pete de culoare puse la intamplare intr-un gol gri. Pur
+   decorativ, nu se misca, deci e practic gratis. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 0%, rgba(79, 70, 229, 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 30%, rgba(129, 140, 248, 0.07), transparent 60%),
+    radial-gradient(ellipse 65% 55% at 30% 100%, rgba(67, 56, 202, 0.06), transparent 60%);
+}
+
 /* Login */
 #login-screen {
   min-height: 100vh;
@@ -182,9 +209,12 @@ body {
 }
 
 .login-box {
-  background: var(--card);
-  border-radius: 20px;
-  box-shadow: var(--shadow);
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-lg);
   padding: 36px;
   width: 100%;
   max-width: 340px;
@@ -193,7 +223,16 @@ body {
   gap: 8px;
 }
 
-.login-box h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.login-box h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--text) 30%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .login-box .subtitle { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
 
 .login-box label { font-size: 13px; color: var(--muted); margin-top: 10px; font-weight: 500; }
@@ -226,12 +265,12 @@ body {
 .section-choice-btn:active { transform: scale(0.99); }
 
 .section-choice-btn-camin {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   border: none;
-  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
 }
-.section-choice-btn-camin:hover { background: var(--primary-dark); }
+.section-choice-btn-camin:hover { box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4); transform: translateY(-1px); }
 
 .section-choice-btn-vega {
   background: #fff;
@@ -245,8 +284,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--card);
-  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.04);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.05), 0 4px 20px rgba(79, 70, 229, 0.05);
   padding: 14px 24px;
   position: sticky;
   top: 0;
@@ -279,7 +320,7 @@ body {
 .link-btn:hover { color: var(--text); }
 
 main {
-  max-width: 900px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 24px 20px 60px;
   display: flex;
@@ -293,6 +334,10 @@ main {
   font-size: 30px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text) 25%, var(--primary-dark) 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .page-subtitle {
   margin: 6px 0 0;
@@ -323,7 +368,9 @@ main {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--card);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid var(--border);
   border-radius: 999px;
   padding: 9px 16px;
@@ -333,13 +380,16 @@ main {
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
-.tab-btn:hover { border-color: var(--primary); color: var(--primary); }
+.tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
 .tab-btn-active {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   border-color: var(--primary);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
 }
+.tab-btn-active:hover { color: #fff; }
 .tab-count {
   background: rgba(0, 0, 0, 0.08);
   border-radius: 999px;
@@ -350,9 +400,12 @@ main {
 .tab-btn-active .tab-count { background: rgba(255, 255, 255, 0.25); }
 
 .panel {
-  background: var(--card);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
   padding: 22px 24px;
 }
 
@@ -467,11 +520,13 @@ textarea:focus {
   font-weight: 600;
   color: var(--primary);
   font-family: inherit;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
-.secondary-btn:hover { background: var(--primary-bg); }
+.secondary-btn:hover { background: var(--primary-bg); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15); }
+.secondary-btn:active { transform: translateY(0); }
 
 .primary-btn, button[type="submit"] {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: white;
   border: none;
   border-radius: 10px;
@@ -480,10 +535,12 @@ textarea:focus {
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
-.primary-btn:hover, button[type="submit"]:hover { background: var(--primary-dark); }
-.primary-btn:disabled { opacity: 0.6; cursor: default; }
+.primary-btn:hover, button[type="submit"]:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(79, 70, 229, 0.38); }
+.primary-btn:active, button[type="submit"]:active { transform: translateY(0); }
+.primary-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
 
 .remove-item-btn {
   background: none;
@@ -503,6 +560,13 @@ textarea:focus {
   border-radius: 14px;
   padding: 16px;
   position: relative;
+  background: rgba(255, 255, 255, 0.85);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.request-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.08);
+  border-color: #d7dafc;
 }
 
 .request-card.urgent { border-color: #fca5a5; background: var(--urgent-bg); }
@@ -562,7 +626,10 @@ textarea:focus {
   cursor: pointer;
   color: white;
   font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
+.action-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16, 24, 40, 0.18); }
+.action-btn:active { transform: translateY(0); }
 .accept-btn { background: var(--progress); }
 .reject-btn { background: var(--rejected); }
 .resolve-btn { background: var(--done); }
