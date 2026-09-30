@@ -30,7 +30,7 @@ export default function LoginPage() {
       setTimeout(() => {
         router.push("/dashboard");
         router.refresh();
-      }, 1700);
+      }, 3200);
     } catch (err) {
       setError(err.message);
       setLoading(false);

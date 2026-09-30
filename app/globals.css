@@ -259,19 +259,31 @@ body::before {
 .welcome-box {
   align-items: center;
   text-align: center;
-  animation: welcomeIn 0.45s ease both;
+  animation: welcomeIn 0.7s ease both;
 }
 .welcome-box h1 { text-align: center; }
-.welcome-box .subtitle { text-align: center; margin-bottom: 0; }
-.welcome-smiley { margin-bottom: 4px; animation: smileyPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.welcome-box .subtitle { text-align: center; margin-bottom: 0; animation: welcomeTextIn 0.8s ease 0.25s both; }
+.welcome-box h1 { animation: welcomeTextIn 0.8s ease 0.15s both; }
+.welcome-smiley {
+  margin-bottom: 4px;
+  animation: smileyPop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both, smileyBreathe 2.4s ease-in-out 0.9s infinite;
+}
 @keyframes welcomeIn {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes welcomeTextIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes smileyPop {
   0% { transform: scale(0.2) rotate(-18deg); opacity: 0; }
   60% { transform: scale(1.15) rotate(6deg); opacity: 1; }
   100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes smileyBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
 }
 
 .login-box button { margin-top: 18px; }
@@ -316,20 +328,51 @@ body::before {
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   box-shadow: 0 1px 0 rgba(16, 24, 40, 0.05), 0 4px 20px rgba(79, 70, 229, 0.05);
-  padding: 14px 24px;
+  border-bottom: 1px solid rgba(79, 70, 229, 0.08);
+  padding: 12px 24px;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.brand { font-weight: 800; font-size: 15px; letter-spacing: -0.01em; }
+/* Sigla mica, in gradient - randata cu ::before pe randul de text, ca sa
+   apara ca un "logo mark" langa numele aplicatiei, fara sa fie nevoie de un
+   fisier de imagine separat. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--text) 15%, var(--primary-dark) 140%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand::before {
+  content: "C";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+}
 
-.who { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
-.who span:first-child { font-weight: 600; color: var(--text); }
+.who { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.who span:first-child { font-weight: 600; color: var(--text); padding: 6px 4px; }
 
 .badge-role {
-  background: var(--primary-bg);
+  background: linear-gradient(135deg, var(--primary-bg), #e2e6ff);
   color: var(--primary);
+  border: 1px solid rgba(79, 70, 229, 0.14);
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 12px;
@@ -344,8 +387,11 @@ body::before {
   font-size: 13px;
   font-family: inherit;
   font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
-.link-btn:hover { color: var(--text); }
+.link-btn:hover { color: var(--primary); background: rgba(79, 70, 229, 0.08); }
 
 main {
   max-width: 1180px;
@@ -384,22 +430,28 @@ main {
 
 /* Meniul de sus - alege ce panou (pagina) e vizibil, ca sa nu mai fie nevoie
    sa dai scroll prin tot ce e in aplicatie ca sa gasesti o anumita chestie. */
+/* Bara-container ("segmented control") - tab-urile stau incadrate intr-o
+   capsula de sticla, nu pluteau libere pe fundal. */
 .tabs-nav {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 2px;
+  padding: 6px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
 }
 .tab-btn {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1.5px solid var(--border);
+  background: transparent;
+  border: 1.5px solid transparent;
   border-radius: 999px;
   padding: 9px 16px;
   font-size: 13px;
@@ -408,16 +460,15 @@ main {
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
-  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
-.tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+.tab-btn:hover { background: rgba(79, 70, 229, 0.08); color: var(--primary); transform: translateY(-1px); }
 .tab-btn-active {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-color: var(--primary);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
-.tab-btn-active:hover { color: #fff; }
+.tab-btn-active:hover { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
 .tab-count {
   background: rgba(0, 0, 0, 0.08);
   border-radius: 999px;
@@ -425,7 +476,7 @@ main {
   font-size: 11px;
   font-weight: 700;
 }
-.tab-btn-active .tab-count { background: rgba(255, 255, 255, 0.25); }
+.tab-btn-active .tab-count { background: rgba(255, 255, 255, 0.28); }
 
 .panel {
   background: var(--glass-bg-strong);
@@ -766,14 +817,96 @@ textarea:focus {
   }
 }
 
+/* Orice bifa (checkbox) din aplicatie - "Urgent", "Doar urgente", bifele de
+   produse etc. - desenata manual in tema aplicatiei (patratel rotunjit,
+   gradient indigo cand e bifat, bifa alba desenata din border), nu bifa
+   implicita, gri, a sistemului de operare. */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input[type="checkbox"]:hover { border-color: #c7cbf7; }
+input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-color: var(--primary);
+}
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+}
+
 /* Bifa de selectare a produselor la "Cerere nouă" - mai mare si mai usor de
    apasat (atat bifa in sine, cat si tot rândul, ca sa nu mai fie nevoie sa
    nimeresti exact patratelul mic). */
 .product-checkbox {
   width: 22px;
   height: 22px;
+  min-width: 22px;
+  border-radius: 7px;
   cursor: pointer;
-  accent-color: var(--primary);
+}
+.product-checkbox:checked::after {
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 11px;
+}
+
+/* Buton "inapoi sus" - apare dupa ce ai derulat suficient, vezi
+   ScrollToTop.js. Fix in coltul din dreapta-jos, deasupra oricarui alt
+   continut, dar sub eventuale modale (nu avem modale in aplicatie momentan). */
+.scroll-top-btn {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 20;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  animation: scrollTopIn 0.25s ease both;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.scroll-top-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(79, 70, 229, 0.5); }
+.scroll-top-btn:active { transform: translateY(-1px); }
+@keyframes scrollTopIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 600px) {
+  .scroll-top-btn { right: 14px; bottom: 14px; width: 42px; height: 42px; }
+}
+@media print {
+  .scroll-top-btn { display: none !important; }
 }
 .product-row {
   cursor: pointer;
